@@ -41,4 +41,7 @@ export const getDailyRecommend = async () => {
 export const getRecommendList = async () => {
   return await getData('/data/recommendList');
 };
+export const getSongList = async () => {
+  return await getData('/data/songList');
+};
 
