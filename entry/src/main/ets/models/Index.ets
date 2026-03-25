@@ -36,3 +36,18 @@ export interface MomentListType {
   song: SongItemType;	// 歌曲
 }
 
+export class SongItem implements SongItemType {
+  img: string = '';
+  title: string = '';
+  artist: string = '';
+  url: string = '';
+  id: string = '';
+  constructor(model: SongItemType) {
+    this.img = model.img;
+    this.title = model.title;
+    this.artist = model.artist;
+    this.url = model.url;
+    this.id = model.id;
+  }
+}
+
