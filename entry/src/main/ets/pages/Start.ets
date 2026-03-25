@@ -1,42 +1,40 @@
-// 全版本兼容的标准导入方式，绝对不会报导出错误
+import { SAFE_TOP } from '../constants';
 import router from '@ohos.router';
 
 @Entry
 @Component
 struct Start {
-  // 定时器 id
-  timerId: number = 0;
-
-  aboutToAppear(): void {
-    // 5秒后自动跳转到首页，直接用全局路由，无初始化坑
-    this.timerId = setTimeout(() => {
-      router.replaceUrl({ url: 'pages/Index' });
-    }, 5000);
-  }
-
-  aboutToDisappear(): void {
-    // 页面销毁时清除定时器，避免内存泄漏
-    clearTimeout(this.timerId);
-  }
+  // 读取顶部安全区域高度
+  @StorageProp(SAFE_TOP) safeTop: number = 0;
 
   build() {
-    // 根容器必须设置全屏宽高，保证内容正常渲染
-    Stack({ alignContent: Alignment.TopEnd }) {
-      Image($r('app.media.ad'))
-        .width('100%')
-        .height('100%')
-        .objectFit(ImageFit.Cover)
+    Column() {
+      // 右上角“跳过”按钮
+      Row() {
+        Button('跳过')
+          .fontSize(14)
+          .fontColor('#fff')
+          .backgroundColor('#e4608b')
+          .onClick(() => {
+            // 跳转到主页面（替换当前页，避免返回启动页）
+            router.replaceUrl({ url: 'pages/Index' });
+          })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ right: 10, top: this.safeTop + 10 })
 
-      Button('跳过')
-        .margin(10)
-        .backgroundColor('#4d000000')
-        .fontColor(Color.White)
-        .onClick(() => {
-          // 点击跳过直接跳转
-          router.replaceUrl({ url: 'pages/Index' });
-        })
+      // 启动页中间内容（可替换为Logo、广告图等）
+      Column() {
+        Text('启动页')
+          .fontSize(28)
+          .fontColor('#fff')
+      }
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
     }
     .width('100%')
     .height('100%')
+    .backgroundColor('#131215')
   }
 }

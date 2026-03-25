@@ -1,6 +1,9 @@
+
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
+import { SAFE_TOP, SAFE_BOTTOM } from '../constants/index';
+
 
 const DOMAIN = 0x0000;
 
@@ -19,10 +22,20 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
     windowStage.loadContent('pages/Start', (err) => {
-      if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
-        return;
-      }
+      // 获取主窗口对象
+      const mainWindow = windowStage.getMainWindowSync();
+      // 设置沉浸式效果
+      mainWindow.setWindowLayoutFullScreen(true);
+      // 修改状态栏内容的颜色
+      mainWindow.setWindowSystemBarProperties({
+        statusBarContentColor: '#ffffff'
+      });
+      // 获取顶部避让区高度（px单位），
+      const avoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+      const safeTop = mainWindow.getUIContext().px2vp(avoidArea.topRect.height);
+      // 获取底部避让区高度（px单位）
+      const navigationArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      const safeBottom = mainWindow.getUIContext().px2vp(navigationArea.bottomRect.height);
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
   }
