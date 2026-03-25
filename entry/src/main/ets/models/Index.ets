@@ -26,3 +26,13 @@ export interface SongItemType {
   url: string;   	// 歌曲URL
   id: string;     // 唯一标识
 }
+
+export interface MomentListType {
+  author: string;		  // 作者
+  avatar: string;		  // 头像
+  content: string;		// 内容
+  comment: number;		// 评论数
+  like: number;			  // 喜欢数
+  song: SongItemType;	// 歌曲
+}
+
