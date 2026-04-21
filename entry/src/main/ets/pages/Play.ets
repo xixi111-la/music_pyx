@@ -395,7 +395,7 @@
 import { SongItem, PlayState } from '../models/Index';
 import { SONG_KEY } from '../constants';
 import AVPlayerManager from '../utils/AVPlayerManager';
-import router from '@ohos.router'; // 【步骤3】推荐使用标准导入，更稳定
+import router from '@ohos.router';
 
 @Entry
 @Component
