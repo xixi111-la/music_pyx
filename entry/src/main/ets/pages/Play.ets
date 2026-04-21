@@ -395,6 +395,7 @@
 import { SongItem, PlayState } from '../models/Index';
 import { SONG_KEY } from '../constants';
 import AVPlayerManager from '../utils/AVPlayerManager';
+import router from '@ohos.router'; // 【步骤3】推荐使用标准导入，更稳定
 
 @Entry
 @Component
@@ -408,6 +409,9 @@ struct Play {
 
   @State rotateAngle: number = 0;
 
+  // 【步骤3】获取 Router 对象（如果不喜欢上面的标准导入，可以用下面这行）
+  // router = this.getUIContext().getRouter();
+
   // 状态变化监听器：控制唱片旋转
   changeAnimate() {
     if (this.playState.isPlay) {
@@ -419,7 +423,6 @@ struct Play {
 
   // 时间格式化工具：毫秒 -> 分:秒
   number2time(number: number) {
-    // 增加判空保护，防止 number 为 undefined 报错
     if (!number) return '00:00';
 
     if (number >= 60 * 1000) {
@@ -437,31 +440,50 @@ struct Play {
 
   // 定义动画对象：实现唱片旋转效果
   animatorResult = this.getUIContext().createAnimator({
-    duration: 1000 * 15, // 15秒转一圈
+    duration: 1000 * 15,
     easing: 'linear',
     delay: 0,
     fill: 'none',
     direction: 'normal',
-    iterations: -1, // 无限循环
+    iterations: -1,
     begin: 0,
     end: 360
   })
 
   aboutToAppear() {
-    // 监听动画帧，更新旋转角度
     this.animatorResult.onFrame = val => {
       this.rotateAngle = val;
     };
   }
 
+  // ---------------- 【步骤4】新增：删除按钮构建函数 ----------------
+  @Builder
+  deleteButton(index: number) {
+    Button('删除')
+      .backgroundColor('#ec5c87')
+      .fontColor('#fff')
+      .width(80)
+      .height('100%')
+      .type(ButtonType.Normal)
+      .onClick(() => {
+        // 逻辑：如果列表只剩最后一首（或更少），删除后直接返回
+        if (AVPlayerManager.currentSong.playList.length <= 1) {
+          // 停止播放（可选）
+          AVPlayerManager.pause();
+          // 返回上一页
+          router.back();
+        } else {
+          // 调用管理器的删除方法
+          AVPlayerManager.remove(index);
+        }
+      })
+  }
+
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
-      // ---------------- 1. 主播放区域 ----------------
       this.PlayAreaBuilder()
 
-      // ---------------- 2. 底部弹出的播放列表 ----------------
       Column() {
-        // 点击空白区域关闭
         Column()
           .width('100%')
           .layoutWeight(1)
@@ -469,7 +491,6 @@ struct Play {
             this.panelHeight = '0%';
           })
 
-        // 播放列表本体
         Column() {
           this.PlayListHeaderBuilder()
           this.PlayListContentBuilder()
@@ -477,7 +498,7 @@ struct Play {
         .height(400)
       }
       .height(this.panelHeight)
-      .animation({ duration: 300 }) // 弹出动画
+      .animation({ duration: 300 })
     }
     .width('100%')
     .height('100%')
@@ -486,12 +507,9 @@ struct Play {
 
   // ---------------- 自定义构建函数拆分 ----------------
 
-  /** 主播放区域 */
   @Builder
   PlayAreaBuilder() {
     Stack() {
-      // 1. 背景图（模糊处理）
-      // 增加判空，防止没数据时加载报错
       if (this.playState.img) {
         Image(this.playState.img)
           .width('100%')
@@ -500,13 +518,10 @@ struct Play {
           .objectFit(ImageFit.Cover)
       }
 
-      // 2. 前景内容
       Column() {
         Column() {
-          // (1) 封面图区域（唱片+唱针）
           this.CoverImageBuilder()
 
-          // (2) 歌曲信息区域
           Stack() {
             Column({ space: 8 }) {
               Text(this.playState.title || '未播放')
@@ -522,7 +537,6 @@ struct Play {
           }
           .layoutWeight(1)
 
-          // (3) 互动Badge区域
           Row() {
             Badge({ value: '99+', style: { badgeSize: 12, badgeColor: '#45CCCCCC', borderWidth: 0 } }) {
               Image($r('app.media.ic_like'))
@@ -550,7 +564,6 @@ struct Play {
           .width('100%')
           .justifyContent(FlexAlign.SpaceAround)
 
-          // (4) 播放控制区域
           this.ControllerBuilder()
         }
         .layoutWeight(1)
@@ -563,11 +576,9 @@ struct Play {
     .backgroundColor(Color.Transparent)
   }
 
-  /** 封面图（唱片+唱针） */
   @Builder
   CoverImageBuilder() {
     Stack({ alignContent: Alignment.Top }) {
-      // 唱片
       Row() {
         Row() {
           if (this.playState.img) {
@@ -592,7 +603,6 @@ struct Play {
       .justifyContent(FlexAlign.Center)
       .padding(24)
 
-      // 唱针
       Image($r('app.media.ic_stylus'))
         .width(200)
         .aspectRatio(1)
@@ -605,18 +615,14 @@ struct Play {
     }
   }
 
-  /** 播放控制条（核心修改区域） */
   @Builder
   ControllerBuilder() {
     Column() {
-      // 1. 进度条区域
       Row({ space: 4 }) {
-        // 当前时间
         Text(this.number2time(this.playState.time))
           .fontSize(12)
           .fontColor(Color.White)
 
-        // 进度条
         Slider({
           value: this.playState.time,
           min: 0,
@@ -628,11 +634,9 @@ struct Play {
           .trackColor('#ccc5c5c5')
           .trackThickness(2)
           .onChange(value => {
-            // 拖动进度条跳转
             AVPlayerManager.player.seek(value);
           })
 
-        // 总时长
         Text(this.number2time(this.playState.duration))
           .fontSize(12)
           .fontColor(Color.White)
@@ -640,17 +644,14 @@ struct Play {
       .width('100%')
       .padding(24)
 
-      // 2. 按钮控制区域
       Row() {
-        // (1) 播放模式切换
         if (this.playState.playMode == 'auto') {
           Image($r('app.media.ic_auto'))
             .fillColor(Color.White)
             .width(30)
             .onClick(() => {
               this.playState.playMode = 'repeat';
-              // 可选：同步修改管理器里的模式
-              if(AVPlayerManager.currentSong) {
+              if (AVPlayerManager.currentSong) {
                 AVPlayerManager.currentSong.playMode = 'repeat';
               }
             })
@@ -660,7 +661,7 @@ struct Play {
             .width(30)
             .onClick(() => {
               this.playState.playMode = 'random';
-              if(AVPlayerManager.currentSong) {
+              if (AVPlayerManager.currentSong) {
                 AVPlayerManager.currentSong.playMode = 'random';
               }
             })
@@ -670,13 +671,12 @@ struct Play {
             .width(30)
             .onClick(() => {
               this.playState.playMode = 'auto';
-              if(AVPlayerManager.currentSong) {
+              if (AVPlayerManager.currentSong) {
                 AVPlayerManager.currentSong.playMode = 'auto';
               }
             })
         }
 
-        // (2) 【步骤3】上一首按钮
         Image($r('app.media.ic_prev'))
           .fillColor(Color.White)
           .width(30)
@@ -684,7 +684,6 @@ struct Play {
             AVPlayerManager.prevPlay();
           })
 
-        // (3) 播放/暂停按钮
         Image(this.playState.isPlay ? $r('app.media.ic_paused') : $r('app.media.ic_play'))
           .fillColor(Color.White)
           .width(50)
@@ -692,14 +691,12 @@ struct Play {
             if (this.playState.isPlay) {
               AVPlayerManager.pause();
             } else {
-              // 判空保护
               if (this.playState.playList && this.playState.playList.length > 0) {
                 AVPlayerManager.singPlay(this.playState.playList[this.playState.playIndex]);
               }
             }
           })
 
-        // (4) 【步骤4】下一首按钮
         Image($r('app.media.ic_next'))
           .fillColor(Color.White)
           .width(30)
@@ -707,7 +704,6 @@ struct Play {
             AVPlayerManager.nextPlay();
           })
 
-        // (5) 打开播放列表
         Image($r('app.media.ic_song_list'))
           .fillColor(Color.White)
           .width(30)
@@ -721,7 +717,6 @@ struct Play {
     }
   }
 
-  /** 播放列表头部 */
   @Builder
   PlayListHeaderBuilder() {
     Row() {
@@ -741,7 +736,6 @@ struct Play {
       }
       .layoutWeight(1)
 
-      // 关闭按钮
       Image($r('app.media.ic_close'))
         .fillColor('#ffa49a9a')
         .width(24)
@@ -758,16 +752,14 @@ struct Play {
     .borderRadius({ topLeft: 4, topRight: 4 })
   }
 
-  /** 播放列表内容 */
+  /** 播放列表内容（【步骤5】核心修改区域） */
   @Builder
   PlayListContentBuilder() {
     List() {
-      // 判空保护
       if (this.playState.playList && this.playState.playList.length > 0) {
         ForEach(this.playState.playList, (item: SongItem, index: number) => {
           ListItem() {
             Row() {
-              // 序号
               Row() {
                 Text((index + 1).toString())
                   .fontColor('#ffa49a9a')
@@ -776,7 +768,6 @@ struct Play {
               .aspectRatio(1)
               .justifyContent(FlexAlign.Center)
 
-              // 歌曲信息
               Row({ space: 10 }) {
                 Column() {
                   Text(item.title)
@@ -792,11 +783,9 @@ struct Play {
               }
               .layoutWeight(1)
               .onClick(() => {
-                // 点击切歌
                 AVPlayerManager.singPlay(this.playState.playList[index]);
               })
 
-              // 更多按钮
               Image($r('app.media.ic_more'))
                 .width(24)
                 .height(24)
@@ -806,6 +795,8 @@ struct Play {
             .alignItems(VerticalAlign.Center)
           }
           .border({ width: { bottom: 1 }, color: '#12ec5c87' })
+          // 【步骤5】新增：左滑删除效果
+          .swipeAction({ end: this.deleteButton(index) })
         })
       }
     }
